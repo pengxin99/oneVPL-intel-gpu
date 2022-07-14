@@ -209,7 +209,7 @@ namespace UMC_AV1_DECODER
 
             frame.CompleteDecoding();
             wasCompleted = true;
-
+            printf("000000000 QueryFrames, complete frame: %p, frame_index: %d \n", &frame, index);
             if (sts < UMC::UMC_OK)
             {
                 // [Global] Add GPU hang reporting
@@ -238,6 +238,7 @@ namespace UMC_AV1_DECODER
                 TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(UMC::UMC_OK); });
             }
 #endif
+            printf("QueryFrames: frame index: %d, frame.DecodingCompleted. %d \n", index, frame.DecodingCompleted());
         }
 
         return wasCompleted;

@@ -860,6 +860,7 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
         frame = m_decoder->DecodeFrameID(info->copyfromframe);
         MFX_CHECK(frame, MFX_ERR_UNDEFINED_BEHAVIOR);
         frame->Repeated(false);
+        printf("000000000 QueryFrame, repeated!\n");
     }
     else
     {

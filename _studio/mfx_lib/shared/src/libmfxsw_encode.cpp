@@ -671,6 +671,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
             MFX_SAFE_CALL(session->m_pENCODE->m_pSurfaceCache->Update(*surface));
         }
         {
+            printf("TASK SCHEDULE [%u] Enc Add task!!\n", std::this_thread::get_id());
             mfxSyncPoint syncPoint = NULL;
             mfxFrameSurface1* reordered_surface = NULL;
             mfxEncodeInternalParams internal_params;

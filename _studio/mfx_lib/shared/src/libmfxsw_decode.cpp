@@ -536,6 +536,8 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
         // source data is OK, go forward
         if (task.entryPoint.pRoutine)
         {
+            printf("TASK SCHEDULE [%u] Dec Add task!!\n", std::this_thread::get_id());
+
             mfxStatus mfxAddRes;
 
             task.pOwner = session->m_pDECODE.get();
@@ -551,6 +553,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 
             // register input and call the task
             mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
+
             MFX_CHECK_STS(mfxAddRes);
 
             if (syncPoint && *surface_out && (*surface_out)->FrameInterface && !session->m_pCORE->IsExternalFrameAllocator())

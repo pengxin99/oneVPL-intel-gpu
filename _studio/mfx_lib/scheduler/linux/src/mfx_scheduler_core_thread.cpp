@@ -70,8 +70,11 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
                 make_event_data(threadNum), [&](){ return make_event_data(call.res);});
             
             pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Waiting;
+            auto sts = GetTask(call, previousTaskHandle, threadNum);
+            printf("TASK SCHEDULE [%u] GetTask, previousTaskHandle.taskID: %d, previousTaskHandle.jobID: %d, threadNum: %d, task sts: %d\n", 
+                                                std::this_thread::get_id(), previousTaskHandle.taskID, previousTaskHandle.jobID, threadNum, sts);
 
-            if (MFX_ERR_NONE == GetTask(call, previousTaskHandle, threadNum))
+            if (MFX_ERR_NONE == sts)
             {
                 pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
                 guard.unlock();
@@ -87,6 +90,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 
                 // mark the task completed,
                 // set the sync point into the high state if any.
+                printf("TASK SCHEDULE [%u] MarkTaskCompleted.\n", std::this_thread::get_id());
                 MarkTaskCompleted(&call, threadNum);
                 continue;
             }

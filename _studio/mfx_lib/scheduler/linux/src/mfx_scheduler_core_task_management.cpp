@@ -555,10 +555,10 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
 
 
             // reset jobID to avoid false waiting on complete tasks, which were reused
-            pTask->jobID = 0;
+            // pTask->jobID = 0;
             // save the status
             pTask->opRes = MFX_ERR_NONE;
-
+            printf("TASK SCHEDULE [%u] pTask: %p, pTask->done.notify_all(), pTask->jobID:%d \n", std::this_thread::get_id(), pTask, pTask->jobID);
             pTask->done.notify_all();
 
             // remove dependencies produced from the dependency table

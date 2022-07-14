@@ -69,6 +69,7 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
 
         // need to update dependency table for all tasks dependent from failed 
         m_pSchedulerCore->ResolveDependencyTable(this);
+        printf("TASK SCHEDULE [%u] OnDependencyResolved! pTask->done.notify_all() \n", std::this_thread::get_id());
         done.notify_all();
 
         // release the current task resources

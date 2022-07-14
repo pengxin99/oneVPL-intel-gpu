@@ -517,6 +517,9 @@ void mfxSchedulerCore::RegisterTaskDependencies(MFX_SCHEDULER_TASK  *pTask)
         // save the status
         m_pFreeTasks->curStatus = taskRes;
         m_pFreeTasks->opRes = taskRes;
+        printf("TASK SCHEDULE [%u] RegisterTaskDependencies! m_pFreeTasks->done.notify_all(), m_pFreeTasks->taskID: %d, m_pFreeTasks->jobID: %d \n", 
+                            std::this_thread::get_id(), m_pFreeTasks->taskID, m_pFreeTasks->jobID);
+
         m_pFreeTasks->done.notify_all();
     }
 
