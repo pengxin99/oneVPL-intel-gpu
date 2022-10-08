@@ -1225,6 +1225,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         for (;;)
         {
+            printf("------------------------- H264 DecodeFrameCheck start. \n");
             umcRes = m_pH264VideoDecoder->AddSource(bs ? &src : 0);
 
             umcFrameRes = umcRes;

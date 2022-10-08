@@ -316,8 +316,10 @@ public:
     {
         auto allocator = GetAllocatorByMid(mid);
         MFX_CHECK(allocator, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        return allocator->GetHDL(mid, handle);
+        // printf("------------------------- [FrameAllocatorWrapper::GetHDL]: mid: %p, *mid: %d, handle: %p, *handle: %d \n", mid, *(int *)mid, handle, *(int *)handle);
+        auto sts = allocator->GetHDL(mid, handle);
+        printf("------------------------- [FrameAllocatorWrapper::GetHDL]: mid: %p, *mid: %d, handle: %p, *handle: %d \n", mid, *(int *)mid, handle, *(int *)handle);
+        return sts;
     }
 
     mfxStatus Free(mfxFrameAllocResponse& response)

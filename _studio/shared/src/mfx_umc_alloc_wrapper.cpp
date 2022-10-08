@@ -459,6 +459,7 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
         *pNewMemID = UMC::FRAME_MID_INVALID;
         return UMC::UMC_ERR_ALLOC;
     }
+    printf("------------------------- [mfx_UMC_FrameAllocator::Alloc]: FindFreeSurface index: %d \n", index);
 
     *pNewMemID = (UMC::FrameMemID)index;
 
@@ -513,6 +514,7 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
     {
         if (m_extSurfaces[index].FrameSurface)
         {
+            printf("------------------------- [mfx_UMC_FrameAllocator::Alloc]: increase Ref of extSurface: %p \n", m_extSurfaces[index].FrameSurface);
             sts = m_pCore->IncreaseReference(&m_extSurfaces[index].FrameSurface->Data);
             if (sts < MFX_ERR_NONE)
                 return UMC::UMC_ERR_FAILED;
@@ -794,8 +796,8 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf)
             // UMC::VideoDataInfo data_info;
 
             m_frameDataInternal.AddNewFrame(this, surface, &m_info);
-            m_extSurfaces.push_back(surf_descr(surface, false));
-            printf("------ SetCurrentMFXSurface, not found, surf: %p, surf->Data.MemId: %p, m_frameDataInternal.size: %d\n", 
+            m_extSurfaces.push_back(surf_descr(surf, false));
+            printf("------------------------- [SetCurrentMFXSurface], not found, surf: %p, surf->Data.MemId: %p, m_frameDataInternal.size: %d\n", 
                                                 surf, surf->Data.MemId, m_frameDataInternal.GetSize());
         }
             // return MFX_ERR_UNDEFINED_BEHAVIOR;

@@ -367,6 +367,7 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
     m_UIDFrameCounter++;
     pFrame->m_UID = m_UIDFrameCounter;
     pFrame->m_index = frmMID;
+    printf("------------------------- [AllocateFrameData], pFrame: %p, pFrame->m_UID: %d, pFrame->m_index : %d \n", pFrame, pFrame->m_UID, pFrame->m_index);
 
     return UMC_OK;
 }

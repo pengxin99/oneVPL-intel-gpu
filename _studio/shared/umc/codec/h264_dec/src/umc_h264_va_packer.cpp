@@ -115,7 +115,7 @@ void PackerVA::FillFrame(VAPictureH264 * pic, const H264DecoderFrame *pFrame,
 
     pic->picture_id = m_va->GetSurfaceID(index);
     pic->frame_idx = pFrame->isLongTermRef() ? (uint16_t)pFrame->m_LongTermFrameIdx : (uint16_t)pFrame->m_FrameNum;
-
+    printf("-------------------------\t [PackerVA::FillFrame]: frame %p, index: %d, pic->picture_id : %d \n", pFrame, index, pic->picture_id);
     int parityNum0 = pFrame->GetNumberByParity(0);
     if (parityNum0 >= 0 && parityNum0 < 2)
     {
@@ -232,6 +232,7 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
     memset(pPicParams_H264, 0, sizeof(VAPictureParameterBufferH264));
 
     int32_t reference = pCurrentFrame->isShortTermRef() ? 1 : (pCurrentFrame->isLongTermRef() ? 2 : 0);
+    printf("------------------------- [PackerVA::PackPicParams] [01] FillFrame. \n");
 
     FillFrame(&(pPicParams_H264->CurrPic), pCurrentFrame, pSliceHeader->bottom_field_flag, reference, 0);
 
@@ -352,6 +353,8 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
             reference = pFrm->isShortTermRef() ? 1 : (pFrm->isLongTermRef() ? 2 : 0);
             referenceCount ++;
             int32_t field = pFrm->m_bottom_field_flag[0];
+            printf("------------------------- [PackerVA::PackPicParams] [02] Fill reference frame %d, pFrm: %p, reference: %d, defaultIndex: %d. \n", j, pFrm, reference, defaultIndex);
+
             FillFrame(&(pPicParams_H264->ReferenceFrames[j]), pFrm,
                 field, reference, defaultIndex);
 
@@ -359,6 +362,7 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
 
             if ((pFrm == pCurrentFrame) && ((&pCurrentFrame->m_pSlicesInfo) != pSliceInfo))
             {
+                printf("------------------------- [PackerVA::PackPicParams] 03 FillFrame. \n");
                 FillFrame(&(pPicParams_H264->ReferenceFrames[j]), pFrm, 0, reference, defaultIndex);
             }
 
@@ -797,6 +801,8 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 
     for ( ; first_slice < count_all; )
     {
+        printf("------------------------- [PackerVA::PackAU]. \n");
+
         PackPicParams(sliceInfo, slice);
 
         CreateSliceParamBuffer(sliceInfo);
