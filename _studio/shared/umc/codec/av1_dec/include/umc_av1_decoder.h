@@ -143,6 +143,7 @@ namespace UMC_AV1_DECODER
         { m_specified_anchor_Idx = idx;}
         void SetAsAnchor(bool isAnchorFrame)
         { m_isAnchor = isAnchorFrame;}
+        void Update_outputed_frame(AV1DecoderFrame* frame);
 
         virtual bool QueryFrames() = 0;
 

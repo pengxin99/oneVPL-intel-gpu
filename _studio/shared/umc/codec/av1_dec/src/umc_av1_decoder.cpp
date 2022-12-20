@@ -1035,6 +1035,22 @@ namespace UMC_AV1_DECODER
            [] { return new AV1DecoderFrame{}; }
         );
     }
+    void AV1Decoder::Update_outputed_frame(AV1DecoderFrame* frame)
+    {
+        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); iter++)
+        {
+            AV1DecoderFrame* temp = *iter;
+            if(temp == frame)
+            {
+                if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
+                {
+                    temp->DecrementReference();
+                    iter = outputed_frames.erase(iter);
+                }
+                return;
+            }
+        }
+    }
 
     void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame* pPrevFrame)
     {

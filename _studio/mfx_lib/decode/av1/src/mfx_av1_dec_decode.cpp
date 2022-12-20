@@ -884,6 +884,8 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
     }
     mfxStatus sts = DecodeFrame(surface_out, frame);
 
+    m_decoder->Update_outputed_frame(frame);
+
     MFX_CHECK_STS(sts);
     return MFX_TASK_DONE;
 }
