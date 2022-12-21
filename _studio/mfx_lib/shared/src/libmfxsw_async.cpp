@@ -43,6 +43,7 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
     try {
         {
             // call the function
+            // printf("TASK SCHEDULE [%u] session->m_pScheduler->Synchronize, syncp: %d, wait: %d\n", std::this_thread::get_id(), syncp, wait);
             mfxRes = session->m_pScheduler->Synchronize(syncp, wait);
         }
 

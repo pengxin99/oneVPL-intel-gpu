@@ -28,6 +28,7 @@
 #include <functional>
 #include <cassert>
 #include <list>
+#include <mfx_scheduler_logging.h>
 
 enum
 {
@@ -37,6 +38,7 @@ enum
 
 mfxStatus mfxSchedulerCore::Initialize(const MFX_SCHEDULER_PARAM *pParam)
 {
+    FunctionStart();
     MFX_SCHEDULER_PARAM2 param2;
     memset(&param2, 0, sizeof(param2));
     if (pParam) {
@@ -53,6 +55,7 @@ mfxStatus mfxSchedulerCore::Initialize(const MFX_SCHEDULER_PARAM *pParam)
 
 mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 {
+    FunctionStart();
     mfxU32 i;
 
     // release the object before initialization
@@ -132,12 +135,14 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 
 mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint)
 {
+    FunctionStart();
     return AddTask(task, pSyncPoint, NULL, 0);
 
 } // mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint)
 
 mfxStatus mfxSchedulerCore::Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWait)
 {
+    FunctionStart();
     mfxTaskHandle handle;
     mfxStatus mfxRes;
 
@@ -162,17 +167,33 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWai
 mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 {
     // check error(s)
+    FunctionStart();
     if (0 == m_param.numberOfThreads)
     {
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    // look up the task
-    MFX_SCHEDULER_TASK *pTask = m_ppTaskLookUpTable.at(handle.taskID);
-
-    if (nullptr == pTask)
+    MFX_SCHEDULER_TASK *pTask;
     {
-        return MFX_ERR_NULL_PTR;
+        std::unique_lock<std::mutex> guard(m_guard);
+
+        // look up the task
+        pTask = m_ppTaskLookUpTable.at(handle.taskID);
+        for (size_t i = 0; i < m_ppTaskLookUpTable.size(); i++)
+        {
+            if (m_ppTaskLookUpTable[i])
+            {
+                // printf("TASK SCHEDULE [%u] m_ppTaskLookUpTable[%d]: %p, taskID: %d, jobID: %d, curStatus: %d, opRes: %d \n", 
+                    // std::this_thread::get_id(), m_ppTaskLookUpTable[i], m_ppTaskLookUpTable[i]->taskID, m_ppTaskLookUpTable[i]->jobID, m_ppTaskLookUpTable[i]->curStatus, m_ppTaskLookUpTable[i]->opRes);
+            }
+            else
+                break;
+        }
+        
+        if (nullptr == pTask)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
     }
 
     if (MFX_SINGLE_THREAD == m_param.flags)
@@ -251,18 +272,24 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_PRIVATE, "Scheduler::Wait");
         MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Depends^on", "%d", pTask->param.task.nParentId);
         MFX_LTRACE_I(MFX_TRACE_LEVEL_SCHED, timeToWait);
+        // printf("TASK SCHEDULE [%u] pTask: %p, pTask->done.wait_for, pTask:(taskID-jobID): %d-%d, handle:(taskID-jobID): %d-%d\n", 
+                                            // std::this_thread::get_id(), &pTask, pTask->taskID, pTask->jobID, handle.taskID, handle.jobID);
 
         pTask->done.wait_for(guard, std::chrono::milliseconds(timeToWait), [pTask, handle] {
-           return (pTask->jobID != handle.jobID) || (MFX_WRN_IN_EXECUTION != pTask->opRes);
+        return (pTask->jobID != handle.jobID) || (MFX_WRN_IN_EXECUTION != pTask->opRes);
         });
 
         if (pTask->jobID == handle.jobID) {
+            // printf("TASK SCHEDULE [%u] pTask: %p, pTask->done.wait_for, pTask->jobID == handle.jobID, pTask->opRes: %d, pTask:(taskID-jobID): %d-%d, handle:(taskID-jobID): %d-%d\n", 
+                                        // std::this_thread::get_id(), &pTask, pTask->opRes,  pTask->taskID, pTask->jobID, handle.taskID, handle.jobID);
             return pTask->opRes;
         } else {
             /* Notes:
-             *  - task executes next job already, we _lost_ task status and can only assume that
-             *  everything was OK or FAILED, we will assume that task succeeded
-             */
+            *  - task executes next job already, we _lost_ task status and can only assume that
+            *  everything was OK or FAILED, we will assume that task succeeded
+            */
+            // printf("TASK SCHEDULE [%u] pTask: %p, pTask->done.wait_for, pTask->jobID != handle.jobID, pTask->opRes: %d, pTask:(taskID-jobID): %d-%d, handle:(taskID-jobID): %d-%d\n", 
+                            // std::this_thread::get_id(), &pTask, pTask->opRes, pTask->taskID, pTask->jobID, handle.taskID, handle.jobID);
             return MFX_ERR_NONE;
         }
     }
@@ -270,6 +297,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 
 mfxStatus mfxSchedulerCore::GetTimeout(mfxU32& maxTimeToRun)
 {
+    FunctionStart();
     (void)maxTimeToRun;
 
     return MFX_ERR_UNSUPPORTED;
@@ -277,6 +305,7 @@ mfxStatus mfxSchedulerCore::GetTimeout(mfxU32& maxTimeToRun)
 
 mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 {
+    FunctionStart();
     mfxTaskHandle waitHandle = {};
     bool bFind = false;
 
@@ -324,6 +353,7 @@ mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 
 mfxStatus mfxSchedulerCore::WaitForAllTasksCompletion(const void *pOwner)
 {
+    FunctionStart();
     // check error(s)
     if (0 == m_param.numberOfThreads)
     {
@@ -387,6 +417,7 @@ mfxStatus mfxSchedulerCore::WaitForAllTasksCompletion(const void *pOwner)
 
 mfxStatus mfxSchedulerCore::ResetWaitingStatus(const void *pOwner)
 {
+    FunctionStart();
     // reset 'waiting' tasks belong to the given state
     ResetWaitingTasks(pOwner);
 
@@ -401,6 +432,7 @@ mfxStatus mfxSchedulerCore::ResetWaitingStatus(const void *pOwner)
 
 mfxStatus mfxSchedulerCore::GetState(void)
 {
+    FunctionStart();
     // check error(s)
     if (0 == m_param.numberOfThreads)
     {
@@ -413,6 +445,7 @@ mfxStatus mfxSchedulerCore::GetState(void)
 
 mfxStatus mfxSchedulerCore::GetParam(MFX_SCHEDULER_PARAM *pParam)
 {
+    FunctionStart();
     // check error(s)
     if (0 == m_param.numberOfThreads)
     {
@@ -432,6 +465,7 @@ mfxStatus mfxSchedulerCore::GetParam(MFX_SCHEDULER_PARAM *pParam)
 
 mfxStatus mfxSchedulerCore::Reset(void)
 {
+    FunctionStart();
     // check error(s)
     if (0 == m_param.numberOfThreads)
     {
@@ -457,6 +491,7 @@ mfxStatus mfxSchedulerCore::Reset(void)
 
 mfxStatus mfxSchedulerCore::AdjustPerformance(const mfxSchedulerMessage message)
 {
+    FunctionStart();
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     // check error(s)
@@ -499,6 +534,7 @@ mfxStatus mfxSchedulerCore::AdjustPerformance(const mfxSchedulerMessage message)
 mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint,
                                     const char *pFileName, int lineNumber)
 {
+    FunctionStart();
 #ifdef MFX_TRACE_ENABLE
     MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Enqueue^", "%d", task.nTaskId);
 #endif
@@ -593,7 +629,8 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
         handle.taskID = m_pFreeTasks->taskID;
         handle.jobID = m_pFreeTasks->jobID;
         *pSyncPoint = (mfxSyncPoint) handle.handle;
-
+        // printf("TASK SCHEDULE [%u] AddTask, task ip: %p, m_pFreeTasks->taskID: %d, m_pFreeTasks->jobID: %d, *pSyncPoint: %d\n", 
+                                //    std::this_thread::get_id(), m_pFreeTasks, m_pFreeTasks->taskID, m_pFreeTasks->jobID, *pSyncPoint);
         // Register task dependencies
         RegisterTaskDependencies(m_pFreeTasks);
 
@@ -645,6 +682,7 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
 
 mfxStatus mfxSchedulerCore::DoWork()
 {
+    FunctionStart();
     return MFX_ERR_UNSUPPORTED;
 } // mfxStatus mfxSchedulerCore::DoWork()
 

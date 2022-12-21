@@ -213,10 +213,14 @@ namespace UMC_AV1_DECODER
             if ((fh.refresh_frame_flags >> i) & 1)
             {
                 if (!prevFrameDPB.empty() && prevFrameDPB[i] && prevFrameDPB[i]->UID != -1)
+                {
                     prevFrameDPB[i]->DecrementReference();
-
+                    printf("\t------------- DPBUpdate, Decre frame idx: %d, frame: %p, ref: %d\n", prevFrameDPB[i]->GetMemID(), prevFrameDPB[i], prevFrameDPB[i]->GetRefCounter());
+                }
                 updatedFrameDPB[i] = const_cast<AV1DecoderFrame*>(prevFrame);
                 prevFrame->IncrementReference();
+                printf("\t+++++++++++++++ DPBUpdate, Incre frame idx: %d, frame: %p, ref: %d\n", prevFrame->GetMemID(), prevFrame, prevFrame->GetRefCounter());
+
             }
         }
 
@@ -318,6 +322,17 @@ namespace UMC_AV1_DECODER
     AV1DecoderFrame* AV1Decoder::StartFrame(FrameHeader const& fh, DPBType & frameDPB, AV1DecoderFrame* pPrevFrame)
     {
         AV1DecoderFrame* pFrame = nullptr;
+        printf("\tbefore StartFrame: \n");
+        for (size_t i = 0; i < dpb.size(); i++)
+        {
+            printf("\t\t dpb[%d]: %p, GetMemID: %d, ref_count: %d\n", i, dpb[i], dpb[i]->GetMemID(), dpb[i]->GetRefCounter());
+        }
+        printf("\t\t ======================== \n");
+
+        for (size_t i = 0; i < frameDPB.size(); i++)
+        {
+            printf("\t\t frameDPB[%d]: %p, GetMemID: %d, ref_count: %d\n", i, frameDPB[i], frameDPB[i]->GetMemID(), frameDPB[i]->GetRefCounter());
+        }
 
         if (fh.show_existing_frame)
         {
@@ -326,6 +341,8 @@ namespace UMC_AV1_DECODER
             //Increase referernce here, and will be decreased when
             //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
+            printf("\t++++++++++++ StartFrame, Incre1 frame idx: %d, frame: %p, ref: %d\n", pFrame->GetMemID(), pFrame, pFrame->GetRefCounter());
+
             assert(pFrame);
             repeateFrame = pFrame->GetMemID();
 
@@ -333,9 +350,15 @@ namespace UMC_AV1_DECODER
             //When QueryFrame finished and update status in outputed frame
             //list, then it will be released in CompleteDecodedFrames.
             pFrame->IncrementReference();
+            printf("\t++++++++++++ StartFrame, Incre2 frame idx: %d, frame: %p, ref: %d\n", pFrame->GetMemID(), pFrame, pFrame->GetRefCounter());
             pFrame->Repeated(true);
             outputed_frames.push_back(pFrame);
-
+            printf("\toutputed_frames push back (show_existing_frame): %p. \n", pFrame);
+            for (size_t i = 0; i < outputed_frames.size(); i++)
+            {
+                printf("\t\toutputed_frames[%d]: %p\n", i, outputed_frames[i]);
+            }
+            
             FrameHeader const& refFH = pFrame->GetFrameHeader();
 
             if (!refFH.showable_frame)
@@ -349,10 +372,14 @@ namespace UMC_AV1_DECODER
                     if ((Repeat_H.refresh_frame_flags >> i) & 1)
                     {
                         if (!frameDPB.empty() && frameDPB[i] && frameDPB[i]->GetRefCounter())
+                        {
                            frameDPB[i]->DecrementReference();
+                            printf("------------- StartFrame, Decre frame idx: %d, frame: %p, ref: %d\n", frameDPB[i]->GetMemID(), frameDPB[i], frameDPB[i]->GetRefCounter());
+                        }
 
                         frameDPB[i] = const_cast<AV1DecoderFrame*>(pFrame);
                         pFrame->IncrementReference();
+                        printf("\t++++++++++++ StartFrame, Incre3 frame idx: %d, frame: %p, ref: %d\n", pFrame->GetMemID(), pFrame, pFrame->GetRefCounter());
                     }
                 }
             }
@@ -532,6 +559,14 @@ namespace UMC_AV1_DECODER
                 if (Curr_temp != Curr)
                 {
                     updated_refs = DPBUpdate(pPrevFrame);
+                    // for (uint8_t i = 0; i < NUM_REF_FRAMES; i++)
+                    // {
+                    //     printf("\t\t updated_refs[%d]: %p,  ref_count: %d\n", i, updated_refs[i], updated_refs[i]->GetRefCounter());
+                    // }
+                    // for (uint8_t i = 0; i < dpb.size(); i++)
+                    // {
+                    //     printf("\t\t dpb[%d]: %p,  ref_count: %d\n", i, dpb[i], dpb[i]->GetRefCounter());
+                    // }
                     refs_temp = updated_refs;
                 }
                 else
@@ -1038,6 +1073,13 @@ namespace UMC_AV1_DECODER
 
     void AV1Decoder::CompleteDecodedFrames(FrameHeader const& fh, AV1DecoderFrame* pCurrFrame, AV1DecoderFrame* pPrevFrame)
     {
+        printf("\tCompleteDecodedFrames, pPrevFrame: %p, Curr: %p, pCurrFrame: %p\n", pPrevFrame, Curr, pCurrFrame);
+        printf("\tGo into CompleteDecodedFrames, outputed_frames:. \n");
+        for (size_t i = 0; i < outputed_frames.size(); i++)
+        {
+            printf("\t\toutputed_frames[%d]: %p, isOutputted: %d, isDisplayed: %d, is Repeated: %d\n", 
+                    i, outputed_frames[i], outputed_frames[i]->Outputted(), outputed_frames[i]->Displayed(), outputed_frames[i]->Decoded(), outputed_frames[i]->Repeated());
+        }
         if (pPrevFrame && Curr)
         {
             std::unique_lock<std::mutex> l(guard);
@@ -1046,6 +1088,7 @@ namespace UMC_AV1_DECODER
             {
                 outputed_frames.push_back(pPrevFrame);
             }
+
             else
             {
                 if (Repeat_show || FH_OutTemp.show_frame)
@@ -1053,23 +1096,60 @@ namespace UMC_AV1_DECODER
                     for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
                     {
                         AV1DecoderFrame* temp = *iter;
+                        // printf("?????????????? CompleteDecodedFrames, show, now query: %p, index: %d\n", temp, temp->GetMemID());
+
                         if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
                         {
                             temp->DecrementReference();
+                            printf("\t------------- CompleteDecodedFrames, show, Decre frame idx: %d, frame: %p, ref: %d\n", temp->GetMemID(), temp, temp->GetRefCounter());
+
                             iter = outputed_frames.erase(iter);
+                            // printf("\toutputed_frames erase: %p. \n", temp);
+                            // for (size_t i = 0; i < outputed_frames.size(); i++)
+                            // {
+                            //     printf("\t\toutputed_frames[%d]: %p\n", i, outputed_frames[i]);
+                            // }
                         }
                         else
                             iter++;
                     }
                     outputed_frames.push_back(Curr);
+                    // printf("\toutputed_frames push back: %p. \n", Curr);
+                    // for (size_t i = 0; i < outputed_frames.size(); i++)
+                    // {
+                    //     printf("\t\toutputed_frames[%d]: %p\n", i, outputed_frames[i]);
+                    // }
                 }
                 else
                 {
                     // For no display case, decrease reference here which is increased
                     // in pFrame->IncrementReference() in show_existing_frame case.
-                    Curr->DecrementReference();
+                    if (pCurrFrame)
+                    {
+                        Curr->DecrementReference();
+                        printf("\t------------- CompleteDecodedFrames, Not display, Decre frame idx: %d, frame: %p, ref: %d\n", Curr->GetMemID(), Curr, Curr->GetRefCounter());
+                    }else{
+                        for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+                        {
+                            AV1DecoderFrame* temp = *iter;
+                            if(temp->Outputted() && temp->Displayed() && !temp->Decoded() && !temp->Repeated())
+                            {
+                                temp->DecrementReference();
+                                printf("\t------------- CompleteDecodedFrames, show, Decre frame idx: %d, frame: %p, ref: %d\n", temp->GetMemID(), temp, temp->GetRefCounter());
+
+                                iter = outputed_frames.erase(iter);
+                                // printf("\toutputed_frames erase: %p. \n", temp);
+                                // for (size_t i = 0; i < outputed_frames.size(); i++)
+                                // {
+                                //     printf("\t\toutputed_frames[%d]: %p\n", i, outputed_frames[i]);
+                                // }
+                            }
+                            else
+                                iter++;
+                        }
+                    }
                 }
-            }
+            }           
         }
 
         // When no available buffer, don't update Curr buffer to avoid update DPB duplicated.
@@ -1083,6 +1163,12 @@ namespace UMC_AV1_DECODER
         else
         {
             Repeat_show = 0;
+        }
+        printf("\tGo out CompleteDecodedFrames, outputed_frames:. \n");
+        for (size_t i = 0; i < outputed_frames.size(); i++)
+        {
+            printf("\t\toutputed_frames[%d]: %p, isOutputted: %d, isDisplayed: %d, is Repeated: %d\n", 
+                    i, outputed_frames[i], outputed_frames[i]->Outputted(), outputed_frames[i]->Displayed(), outputed_frames[i]->Decoded(), outputed_frames[i]->Repeated());
         }
     }
 
@@ -1116,6 +1202,7 @@ namespace UMC_AV1_DECODER
 
         // increase ref counter when we get empty frame from DPB
         frame->IncrementReference();
+        printf("\t+++++++++++++++ GetFrameBuffer, Incre frame idx: %d, frame: %p, ref: %d\n", frame->GetMemID(), frame, frame->GetRefCounter());
 
         return frame;
     }
@@ -1130,6 +1217,7 @@ namespace UMC_AV1_DECODER
         frame->UID = counter++;
         frame->Reset(&fh);
         frame->IncrementReference();
+        printf("\t+++++++++++++++ GetFrameBufferByIdx, Incre frame idx: %d, frame: %p, ref: %d\n", frame->GetMemID(), frame, frame->GetRefCounter());
         return frame;
     }
 

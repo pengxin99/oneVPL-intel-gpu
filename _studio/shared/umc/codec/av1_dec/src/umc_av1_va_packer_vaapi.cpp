@@ -238,6 +238,7 @@ namespace UMC_AV1_DECODER
         picParam.current_frame = (VASurfaceID)m_va->GetSurfaceID(frame.GetMemID(SURFACE_RECON));
         if (!frame.FilmGrainDisabled())
             picParam.current_display_picture = (VASurfaceID)m_va->GetSurfaceID(frame.GetMemID());
+        printf("\txxxxxxxxxxxxxx current_frame: %d\n", picParam.current_frame);
 
         if (seg.segment_info_fields.bits.enabled)
         {

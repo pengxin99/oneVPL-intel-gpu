@@ -20,7 +20,7 @@
 
 #include <mfx_scheduler_core_task.h>
 #include <mfx_scheduler_core.h>
-
+#include <mfx_scheduler_logging.h>
 
 #include <memory.h>
 
@@ -31,6 +31,7 @@ MFX_SCHEDULER_TASK::MFX_SCHEDULER_TASK(mfxU32 taskID, mfxSchedulerCore *pSchedul
     m_pSchedulerCore(pSchedulerCore)
 {
     // reset task parameters
+    FunctionStart();
     memset(&param, 0, sizeof(param));
 }
 
@@ -38,6 +39,7 @@ MFX_SCHEDULER_TASK::~MFX_SCHEDULER_TASK(void) {}
 
 mfxStatus MFX_SCHEDULER_TASK::Reset(void)
 {
+    FunctionStart();
     // reset task parameters
     memset(&param, 0, sizeof(param));
 
@@ -50,6 +52,7 @@ mfxStatus MFX_SCHEDULER_TASK::Reset(void)
 
 void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
 {
+    FunctionStart();
     if (isFailed(result))
     {
 
@@ -69,6 +72,7 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
 
         // need to update dependency table for all tasks dependent from failed 
         m_pSchedulerCore->ResolveDependencyTable(this);
+        // printf("TASK SCHEDULE [%u] OnDependencyResolved! pTask->done.notify_all() \n", std::this_thread::get_id());
         done.notify_all();
 
         // release the current task resources
@@ -89,6 +93,7 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
 
 mfxStatus MFX_SCHEDULER_TASK::CompleteTask(mfxStatus res)
 {
+    FunctionStart();
     mfxStatus sts;
     MFX_ENTRY_POINT &entryPoint = param.task.entryPoint;
 
@@ -108,6 +113,7 @@ mfxStatus MFX_SCHEDULER_TASK::CompleteTask(mfxStatus res)
 
 void MFX_SCHEDULER_TASK::ReleaseResources(void)
 {
+    FunctionStart();
     if (param.pThreadAssignment)
     {
         param.pThreadAssignment->m_numRefs -= 1;

@@ -126,9 +126,9 @@ inline void MfxLog(FILE* file, const char* levelName, const char* fileName, cons
 #if defined(MFX_ENABLE_LOG_UTILITY)
     std::stringstream threadID;
     threadID << std::this_thread::get_id();
-    fprintf(file, "TH#%s %s %s[Line: %d]", threadID.str().c_str(), levelName, fileName, lineNum);
-    MfxFprintf(file, std::forward<Args>(args)...);
-    fflush(file);
+    // fprintf(file, "TH#%s %s %s[Line: %d]", threadID.str().c_str(), levelName, fileName, lineNum);
+    // MfxFprintf(file, std::forward<Args>(args)...);
+    // fflush(file);
 #endif
 }
 

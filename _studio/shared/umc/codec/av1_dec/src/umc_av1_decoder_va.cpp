@@ -188,6 +188,7 @@ namespace UMC_AV1_DECODER
     bool AV1DecoderVA::QueryFrames()
     {
         std::unique_lock<std::mutex> auto_guard(guard);
+        // printf("TASK SCHEDULE [%u] QueryFrames 1!.\n", std::this_thread::get_id());
 
         // form frame queue in decoded order
         DPBType decode_queue;
@@ -201,6 +202,8 @@ namespace UMC_AV1_DECODER
         // below logic around "wasCompleted" was adopted from AVC/HEVC decoders
         bool wasCompleted = false;
         UMC::Status sts = UMC::UMC_OK;
+        // printf("TASK SCHEDULE [%u] QueryFrames 2!.\n", std::this_thread::get_id());
+
         // iterate through frames submitted to the driver in decoded order
         for (DPBType::iterator frm = decode_queue.begin(); frm != decode_queue.end(); frm++)
         {
@@ -218,12 +221,15 @@ namespace UMC_AV1_DECODER
             VAStatus surfErr = VA_STATUS_SUCCESS;
             index = frame.GetMemID();
             auto_guard.unlock();
+        // printf("TASK SCHEDULE [%u] QueryFrames 2.1!.\n", std::this_thread::get_id());
+
             UMC::Status sts =  packer->SyncTask(index, &surfErr);
+        // printf("TASK SCHEDULE [%u] QueryFrames 2.2!.\n", std::this_thread::get_id());
             auto_guard.lock();
 
             frame.CompleteDecoding();
             wasCompleted = true;
-
+            printf("000000000 QueryFrames, complete frame: %p, frame_index: %d \n", &frame, index);
             if (sts < UMC::UMC_OK)
             {
                 // [Global] Add GPU hang reporting
@@ -244,7 +250,20 @@ namespace UMC_AV1_DECODER
 
             TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, EVENT_TYPE_INFO, TR_KEY_DECODE_BASIC_INFO, make_event_data(
                 frame.m_index, (uint32_t)frame.Outputted(), (uint32_t)frame.DecodingCompleted(), (uint32_t)frame.Displayed(), sts));
+#ifdef MFX_EVENT_TRACE_DUMP_SUPPORTED
+            if (EtwLogConfig == ETW_INFO || EtwLogConfig == ETW_API_INFO || EtwLogConfig == ETW_INFO_BUFFER || EtwLogConfig == ETW_ALL)
+            {
+                DECODE_EVENTDATA_SYNC_AV1 eventData;
+                eventData.m_index = frame.m_index;
+                eventData.isOutputted = frame.Outputted();
+                eventData.isDecodingCompleted = frame.DecodingCompleted();
+                eventData.isDisplayable = frame.Displayed();
+                TRACE_EVENT(MFX_TRACE_API_AV1_SYNCINFO_TASK, 0, make_event_data(eventData), [&]() { return make_event_data(UMC::UMC_OK); });
+            }
+#endif
+            printf("QueryFrames: frame index: %d, frame.DecodingCompleted. %d \n", index, frame.DecodingCompleted());
         }
+        // printf("TASK SCHEDULE [%u] QueryFrames 3!.\n", std::this_thread::get_id());
 
         return wasCompleted;
     }

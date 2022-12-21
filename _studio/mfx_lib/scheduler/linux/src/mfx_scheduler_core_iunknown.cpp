@@ -21,9 +21,11 @@
 #include <mfx_scheduler_core.h>
 
 #include <vm_interlocked.h>
+#include <mfx_scheduler_logging.h>
 
 void *mfxSchedulerCore::QueryInterface(const MFX_GUID &guid)
 {
+    FunctionStart();
     // Specific interface is required
     if (MFXIScheduler_GUID == guid)
     {
@@ -48,6 +50,7 @@ void *mfxSchedulerCore::QueryInterface(const MFX_GUID &guid)
 
 void mfxSchedulerCore::AddRef(void)
 {
+    FunctionStart();
     // increment reference counter
     vm_interlocked_inc32(&m_refCounter);
 
@@ -67,6 +70,7 @@ void mfxSchedulerCore::Release(void)
 
 mfxU32 mfxSchedulerCore::GetNumRef(void) const
 {
+    FunctionStart();
     return m_refCounter;
 
 } // mfxU32 mfxSchedulerCore::GetNumRef(void) const
@@ -75,6 +79,7 @@ mfxU32 mfxSchedulerCore::GetNumRef(void) const
 //explicit specification of interface creation
 template<> MFXIScheduler*  CreateInterfaceInstance<MFXIScheduler>(const MFX_GUID &guid)
 {
+    FunctionStart();
     if (MFXIScheduler_GUID == guid)
         return (MFXIScheduler*) (new mfxSchedulerCore);
 
@@ -84,6 +89,7 @@ template<> MFXIScheduler*  CreateInterfaceInstance<MFXIScheduler>(const MFX_GUID
 
 template<> MFXIScheduler2*  CreateInterfaceInstance<MFXIScheduler2>(const MFX_GUID &guid)
 {
+    FunctionStart();
     if (MFXIScheduler2_GUID == guid)
         return (MFXIScheduler2*)(new mfxSchedulerCore);
 

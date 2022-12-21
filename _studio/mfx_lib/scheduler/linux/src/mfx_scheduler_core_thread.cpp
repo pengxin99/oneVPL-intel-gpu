@@ -23,9 +23,11 @@
 
 #include <mfx_trace.h>
 #include <stdio.h>
+#include <mfx_scheduler_logging.h>
 
 mfxStatus mfxSchedulerCore::StartWakeUpThread(void)
 {
+    FunctionStart();
     // stop the thread before creating it again
     // don't try to check thread status, it might lead to interesting effects.
     if (m_hwWakeUpThread.joinable())
@@ -42,12 +44,14 @@ mfxStatus mfxSchedulerCore::StartWakeUpThread(void)
 mfxStatus mfxSchedulerCore::StopWakeUpThread(void)
 {
 
+    FunctionStart();
     return MFX_ERR_NONE;
 
 } // mfxStatus mfxSchedulerCore::StopWakeUpThread(void)
 
 void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 {
+    FunctionStart();
     std::unique_lock<std::mutex> guard(m_guard);
     mfxTaskHandle previousTaskHandle = {};
     mfxU64 start, stop;
@@ -67,8 +71,17 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "SchedulerRoutine");
             
             pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Waiting;
+            auto sts = GetTask(call, previousTaskHandle, threadNum);
+            // printf("TASK SCHEDULE [%u] GetTask, previousTaskHandle.taskID: %d, previousTaskHandle.jobID: %d, threadNum: %d, task sts: %d\n", 
+                                                // std::this_thread::get_id(), previousTaskHandle.taskID, previousTaskHandle.jobID, threadNum, sts);
+            if(previousTaskHandle.taskID == 1 && previousTaskHandle.jobID == 4)
+            {
+                printf("\n");
+            }
+            // printf("TASK SCHEDULE [%u] GetTask, call.taskHandle.taskID: %d, call.taskHandle.jobID: %d, threadNum: %d, task sts: %d\n", 
+                                                // std::this_thread::get_id(), call.taskHandle.taskID, call.taskHandle.jobID, threadNum, sts);
 
-            if (MFX_ERR_NONE == GetTask(call, previousTaskHandle, threadNum))
+            if (MFX_ERR_NONE == sts)
             {
                 pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
                 guard.unlock();
@@ -84,6 +97,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 
                 // mark the task completed,
                 // set the sync point into the high state if any.
+                // printf("TASK SCHEDULE [%u] MarkTaskCompleted.\n", std::this_thread::get_id());
                 MarkTaskCompleted(&call, threadNum);
                 continue;
             }
@@ -106,6 +120,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 
 void mfxSchedulerCore::WakeupThreadProc()
 {
+    FunctionStart();
     {
         const char thread_name[30] = "ThreadName=MSDKHWL#0";
         (void)thread_name;

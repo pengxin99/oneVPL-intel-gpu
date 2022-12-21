@@ -1039,6 +1039,7 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
     umcRes = m_allocator->GetFrameHandle(FrameBufIndex, &surface);
     if (umcRes != UMC_OK)
         return umcRes;
+    // printf("TASK SCHEDULE [%u] SyncTask 1, sync surfaceID: %d!.\n", std::this_thread::get_id(), *surface);
 
     VAStatus va_sts = VA_STATUS_SUCCESS;
     {
@@ -1048,11 +1049,13 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
 
     TRACE_EVENT(MFX_TRACE_HOTSPOT_DDI_WAIT_TASK_SYNC, EVENT_TYPE_INFO, 0, make_event_data(FrameBufIndex, 0, va_sts));
 
+    // printf("TASK SCHEDULE [%u] SyncTask 2!.\n", std::this_thread::get_id());
     if (VA_STATUS_ERROR_DECODING_ERROR == va_sts)
     {
         if (surfCorruption) *(uint16_t*)surfCorruption = GetDecodingError();
         return UMC_OK;
     }
+    // printf("TASK SCHEDULE [%u] SyncTask 3!.\n", std::this_thread::get_id());
     if (VA_STATUS_ERROR_OPERATION_FAILED == va_sts)
     {
         if (surfCorruption) *(uint16_t*)surfCorruption = MFX_CORRUPTION_MAJOR;

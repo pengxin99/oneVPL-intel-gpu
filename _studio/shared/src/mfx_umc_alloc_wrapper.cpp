@@ -504,7 +504,6 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
          if (!(a_flags & mfx_UMC_ReallocAllowed))
             return UMC::UMC_ERR_UNSUPPORTED;
     }
-
     sts = m_pCore->IncreasePureReference(m_frameDataInternal.GetSurface(index).Data.Locked);
     if (sts < MFX_ERR_NONE)
         return UMC::UMC_ERR_FAILED;
@@ -513,6 +512,7 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
     {
         if (m_extSurfaces[index].FrameSurface)
         {
+            // printf("\t+++++++++++++++ IncreasePureReference index: %d, surface: %p \n", index, m_extSurfaces[index].FrameSurface);
             sts = m_pCore->IncreaseReference(&m_extSurfaces[index].FrameSurface->Data);
             if (sts < MFX_ERR_NONE)
                 return UMC::UMC_ERR_FAILED;
@@ -715,6 +715,7 @@ UMC::Status mfx_UMC_FrameAllocator::Free(UMC::FrameMemID mid)
     {
         if (m_extSurfaces[index].FrameSurface)
         {
+            printf("DecreaseReference index: %d, surface: %p \n", index, m_extSurfaces[index].FrameSurface);
             sts = m_pCore->DecreaseReference(&m_extSurfaces[index].FrameSurface->Data);
             if (sts < MFX_ERR_NONE)
                 return UMC::UMC_ERR_FAILED;

@@ -864,17 +864,22 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
 
     if(info->copyfromframe != UMC::FRAME_MID_INVALID)
     {
+    // printf("TASK SCHEDULE [%u] decoder->QueryFrame 1!.\n", std::this_thread::get_id());
         frame = m_decoder->DecodeFrameID(info->copyfromframe);
         MFX_CHECK(frame, MFX_ERR_UNDEFINED_BEHAVIOR);
         frame->Repeated(false);
+        printf("000000000 QueryFrame, repeated!\n");
     }
+    
     else
     {
+    // printf("TASK SCHEDULE [%u] decoder->QueryFrame 2!.\n", std::this_thread::get_id());
         MFX_CHECK(surface_out, MFX_ERR_UNDEFINED_BEHAVIOR);
         UMC::FrameMemID id = m_surface_source->FindSurface(surface_out);
         frame = m_decoder->FindFrameByMemID(id);
         MFX_CHECK(frame, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(frame->DecodingStarted(), MFX_ERR_UNDEFINED_BEHAVIOR);
+
         if (!frame->DecodingCompleted())
         {
             m_decoder->QueryFrames();
@@ -882,7 +887,9 @@ mfxStatus VideoDECODEAV1::QueryFrame(mfxThreadTask task)
 
         MFX_CHECK(frame->DecodingCompleted(), MFX_TASK_WORKING);
     }
+    // printf("TASK SCHEDULE [%u] decoder->QueryFrame 3!.\n", std::this_thread::get_id());
     mfxStatus sts = DecodeFrame(surface_out, frame);
+
 
     MFX_CHECK_STS(sts);
     return MFX_TASK_DONE;

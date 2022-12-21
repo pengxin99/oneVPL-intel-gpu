@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "mfx_common.h"
+#include <mfx_scheduler_logging.h>
 
 // set the following define to let the scheduler write log file
 // with all its activities.
@@ -466,6 +467,9 @@ mfxU64 mfxSchedulerCore::GetHWEventCounter(void) const
 inline
 void mfxSchedulerCore::call_pRoutine(MFX_CALL_INFO& call)
 {
+    FunctionStart();
+    // printf("TASK SCHEDULE [%u] call_pRoutine.\n", std::this_thread::get_id());
+
     const char *pRoutineName = (call.pTask->entryPoint.pRoutineName)?
         call.pTask->entryPoint.pRoutineName:
         "MFX Async Task";
@@ -478,6 +482,8 @@ void mfxSchedulerCore::call_pRoutine(MFX_CALL_INFO& call)
     // mark beginning of working period
     start = GetHighPerformanceCounter();
     try {
+         // printf("TASK SCHEDULE [%u] call_pRoutine try.\n", std::this_thread::get_id());
+
         if (call.pTask->bObsoleteTask) {
             // NOTE: it is legacy task call, it should be eliminated soon
             call.res = call.pTask->entryPoint.pRoutine(
@@ -497,6 +503,7 @@ void mfxSchedulerCore::call_pRoutine(MFX_CALL_INFO& call)
     } catch(...) {
         call.res = MFX_ERR_UNKNOWN;
     }
+    // printf("TASK SCHEDULE [%u] call_pRoutine try done!.\n", std::this_thread::get_id());
 
     call.timeSpend = (GetHighPerformanceCounter() - start);
 

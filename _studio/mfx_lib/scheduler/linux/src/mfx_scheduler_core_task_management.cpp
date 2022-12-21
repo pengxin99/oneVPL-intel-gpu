@@ -21,6 +21,7 @@
 #include <mfx_scheduler_core.h>
 #include <mfx_scheduler_core_task.h>
 #include <mfx_trace.h>
+#include <mfx_scheduler_logging.h>
 
 // declare the static section of the file
 namespace
@@ -239,6 +240,8 @@ inline
 mfxU32 GetFreeThreadNumber(MFX_THREAD_ASSIGNMENT &occupancyInfo,
                            MFX_SCHEDULER_TASK *pTask)
 {
+    FunctionStart();
+
     mfxU64 mask;
     mfxU32 numThreads;
     mfxU32 i;
@@ -270,6 +273,8 @@ mfxU32 GetFreeThreadNumber(MFX_THREAD_ASSIGNMENT &occupancyInfo,
 
 bool mfxSchedulerCore::IsReadyToRun(MFX_SCHEDULER_TASK *pTask)
 {
+    FunctionStart();
+
     // task is not ready to run (ro should not be run)
     // if task is already done
     if (MFX_TASK_NEED_CONTINUE != pTask->curStatus) {
@@ -309,6 +314,8 @@ mfxStatus mfxSchedulerCore::WrapUpTask(MFX_CALL_INFO &callInfo,
                                        MFX_SCHEDULER_TASK *pTask,
                                        const mfxU32 threadNum)
 {
+    FunctionStart();
+    
     MFX_THREAD_ASSIGNMENT &occupancyInfo = *(pTask->param.pThreadAssignment);
 
     //
@@ -367,6 +374,7 @@ mfxStatus mfxSchedulerCore::WrapUpTask(MFX_CALL_INFO &callInfo,
 
 void mfxSchedulerCore::ResetWaitingTasks(const void *pOwner)
 {
+    FunctionStart();
     ForEachTask(
         [pOwner](MFX_SCHEDULER_TASK* task)
         {
@@ -387,6 +395,7 @@ void mfxSchedulerCore::ResetWaitingTasks(const void *pOwner)
 
 void mfxSchedulerCore::OnDependencyResolved(MFX_SCHEDULER_TASK *pTask)
 {
+    FunctionStart();
     if (IsReadyToRun(pTask)) {
         if (MFX_TASK_DEDICATED & pTask->param.task.threadingPolicy) {
             m_DedicatedThreadsToWakeUp += pTask->param.task.entryPoint.requiredNumThreads;
@@ -399,6 +408,7 @@ void mfxSchedulerCore::OnDependencyResolved(MFX_SCHEDULER_TASK *pTask)
 void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
                                          const mfxU32 threadNum)
 {
+    FunctionStart();
     (void)pCallInfo;
     (void)threadNum;
 
@@ -558,7 +568,7 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
             pTask->jobID = 0;
             // save the status
             pTask->opRes = MFX_ERR_NONE;
-
+            // printf("TASK SCHEDULE [%u] pTask: %p, pTask->done.notify_all(), pTask->jobID:%d \n", std::this_thread::get_id(), pTask, pTask->jobID);
             pTask->done.notify_all();
 
             // remove dependencies produced from the dependency table
@@ -606,6 +616,7 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
 // update dependencies produced from the dependency table
 void mfxSchedulerCore::ResolveDependencyTable(MFX_SCHEDULER_TASK *pTask)
 {
+    FunctionStart();
     mfxU32 i;
     for (i = 0; i < MFX_TASK_NUM_DEPENDENCIES; i += 1)
     {

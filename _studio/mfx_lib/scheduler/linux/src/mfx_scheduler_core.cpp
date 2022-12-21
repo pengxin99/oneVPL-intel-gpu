@@ -23,6 +23,7 @@
 #include <mfx_scheduler_core_task.h>
 #include <mfx_scheduler_core_handle.h>
 #include <mfx_trace.h>
+#include <mfx_scheduler_logging.h>
 
 mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)
@@ -33,6 +34,7 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     , m_DedicatedThreadsToWakeUp(0)
     , m_RegularThreadsToWakeUp(0)
 {
+    FunctionStart();
     memset(&m_param, 0, sizeof(m_param));
     m_refCounter = 1;
 
@@ -72,12 +74,14 @@ mfxSchedulerCore::mfxSchedulerCore(void)
 
 mfxSchedulerCore::~mfxSchedulerCore(void)
 {
+    FunctionStart();
     Close();
 
 } // mfxSchedulerCore::~mfxSchedulerCore(void)
 
 bool mfxSchedulerCore::SetScheduling(std::thread& handle)
 {
+    FunctionStart();
     (void)handle;
     if (m_param.params.SchedulingType || m_param.params.Priority) {
         if (handle.joinable()) {
@@ -96,6 +100,7 @@ void mfxSchedulerCore::SetThreadsAffinityToSockets(void)
 
 void mfxSchedulerCore::Close(void)
 {
+    FunctionStart();
     StopWakeUpThread();
 
     // stop threads
@@ -169,6 +174,7 @@ void mfxSchedulerCore::Close(void)
 
 void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_regular_threads)
 {
+    FunctionStart();
     if (m_param.flags == MFX_SINGLE_THREAD)
         return;
 
@@ -178,6 +184,7 @@ void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_re
         // we have single dedicated thread, thus no loop here
         thctx = GetThreadCtx(0);
         if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
+        // printf("TASK SCHEDULE [%u] .............. WakeUpdateThreads 1 : %d, thctx->threadNum: %d\n", std::this_thread::get_id(), 0, thctx->threadNum);
             thctx->taskAdded.notify_one();
         }
     }
@@ -185,6 +192,9 @@ void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_re
     for (mfxU32 i = (num_dedicated_threads)? 1: 0; (i < m_param.numberOfThreads) && num_regular_threads; ++i) {
         thctx = GetThreadCtx(i);
         if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
+            // // printf("TASK SCHEDULE [%u] pTask: %p, pTask->done.wait_for, pTask->jobID == handle.jobID, pTask->opRes: %d, pTask:(taskID-jobID): %d-%d, handle:(taskID-jobID): %d-%d\n", 
+            //                 std::this_thread::get_id(), &pTask, pTask->opRes,  pTask->taskID, pTask->jobID, handle.taskID, handle.jobID);
+            // printf("TASK SCHEDULE [%u] .............. WakeUpdateThreads 2: %d, thctx->threadNum: %d\n", std::this_thread::get_id(), i, thctx->threadNum);
             thctx->taskAdded.notify_one();
             --num_regular_threads;
         }
@@ -193,26 +203,31 @@ void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_re
 
 void mfxSchedulerCore::Wait(const mfxU32 curThreadNum, std::unique_lock<std::mutex>& mutex)
 {
+    FunctionStart();
     MFX_SCHEDULER_THREAD_CONTEXT* thctx = GetThreadCtx(curThreadNum);
 
     if (thctx) {
+        // printf("TASK SCHEDULE [%u] .............. Wait: %d, thctx->threadNum: %d\n", std::this_thread::get_id(), curThreadNum, thctx->threadNum);
         thctx->taskAdded.wait(mutex);
     }
 }
 
 mfxU64 mfxSchedulerCore::GetHighPerformanceCounter(void)
 {
+    FunctionStart();
     return (mfxU64) std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 
 } // mfxU64 mfxSchedulerCore::GetHighPerformanceCounter(void)
 
 mfxU32 mfxSchedulerCore::GetLowResCurrentTime(void)
 {
+    FunctionStart();
     return (mfxU32)std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).time_since_epoch().count();
 
 } // mfxU32 mfxSchedulerCore::GetCurrentTime(void)
 mfxStatus mfxSchedulerCore::AllocateEmptyTask(void)
 {
+    FunctionStart();
     //
     // THE EXECUTION IS ALREADY IN SECURE SECTION.
     // Just do what need to do.
@@ -262,6 +277,7 @@ mfxStatus mfxSchedulerCore::AllocateEmptyTask(void)
 mfxStatus mfxSchedulerCore::GetOccupancyTableIndex(mfxU32 &idx,
                                                    const MFX_TASK *pTask)
 {
+    FunctionStart();
     mfxU32 i = 0;
     MFX_THREAD_ASSIGNMENT *pAssignment = NULL;
 
@@ -336,6 +352,7 @@ mfxStatus mfxSchedulerCore::GetOccupancyTableIndex(mfxU32 &idx,
 
 void mfxSchedulerCore::ScrubCompletedTasks(bool bComprehensive)
 {
+    FunctionStart();
     int priority;
 
     //
@@ -401,6 +418,7 @@ void mfxSchedulerCore::ScrubCompletedTasks(bool bComprehensive)
 
 void mfxSchedulerCore::RegisterTaskDependencies(MFX_SCHEDULER_TASK  *pTask)
 {
+    FunctionStart();
     mfxU32 i, tableIdx, remainInputs;
     const void *pSrcCopy[MFX_TASK_NUM_DEPENDENCIES];
     mfxStatus taskRes = MFX_WRN_IN_EXECUTION;
@@ -517,6 +535,9 @@ void mfxSchedulerCore::RegisterTaskDependencies(MFX_SCHEDULER_TASK  *pTask)
         // save the status
         m_pFreeTasks->curStatus = taskRes;
         m_pFreeTasks->opRes = taskRes;
+        // printf("TASK SCHEDULE [%u] RegisterTaskDependencies! m_pFreeTasks->done.notify_all(), m_pFreeTasks->taskID: %d, m_pFreeTasks->jobID: %d \n", 
+                            // std::this_thread::get_id(), m_pFreeTasks->taskID, m_pFreeTasks->jobID);
+
         m_pFreeTasks->done.notify_all();
     }
 
